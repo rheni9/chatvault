@@ -1,6 +1,11 @@
+"""
+Utility module for locating the input HTML file containing exported chat data.
+"""
+
 import os
 import sys
 import glob
+
 
 def get_input_html_path() -> str:
     """
@@ -34,7 +39,7 @@ def get_input_html_path() -> str:
             raise ValueError(f"File '{filename}' is not an HTML file.")
 
         return full_path
-    
+
     # Auto-detect HTML files in the directory
     html_files = glob.glob(os.path.join(html_dir, "*.html"))
 
