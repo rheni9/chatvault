@@ -6,16 +6,15 @@ def get_input_html_path() -> str:
     """
     Determine the path to an input HTML file.
 
-    If a filename is passed as a command-line argument, it verifies the file
-    exists in the expected directory and is an HTML file.
-    If no argument is given, it attempts to auto-detect an HTML file in the
-    `data/html/` directory.
+    If a filename is passed as a command-line argument, check that the file
+    exists in the expected directory and has an HTML extension. If no argument
+    is given, try to detect a single HTML file in the data/html/ directory.
 
-    :return: The full path to the HTML file.
+    :return: Full path to the HTML file
     :rtype: str
-    :raises FileNotFoundError: If the specified file does not exist.
-    :raises ValueError: If the provided file is not an HTML file.
-    :raises RuntimeError: If multiple HTML files are found.
+    :raises FileNotFoundError: If the file does not exist
+    :raises ValueError: If the file is not an HTML file
+    :raises RuntimeError: If multiple HTML files are found
     """
 
     # Directory containing HTML input files
