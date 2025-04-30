@@ -2,7 +2,7 @@ import os
 import sys
 import glob
 
-def get_input_html_path():
+def get_input_html_path() -> str:
     """
     Determine the path to an input HTML file.
 
@@ -11,11 +11,11 @@ def get_input_html_path():
     If no argument is given, it attempts to auto-detect an HTML file in the
     `data/html/` directory.
 
+    :return: The full path to the HTML file.
+    :rtype: str
     :raises FileNotFoundError: If the specified file does not exist.
     :raises ValueError: If the provided file is not an HTML file.
     :raises RuntimeError: If multiple HTML files are found.
-    :return: The full path to the HTML file.
-    :rtype: str
     """
 
     # Directory containing HTML input files
