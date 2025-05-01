@@ -34,8 +34,7 @@ def slugify(text: str, max_words: int = 3) -> str:
     Convert a string into a slug suitable for filenames or identifiers.
 
     This includes transliteration, normalization, stripping special characters,
-    and limiting the number of words. If the result is empty, a fallback
-    hash-based slug is generated.
+    word limiting, and a hash-based fallback if needed.
 
     :param text: Input string to convert
     :type text: str
@@ -44,14 +43,15 @@ def slugify(text: str, max_words: int = 3) -> str:
     :return: Generated slug (e.g., "chat_name" or "chat_ab12ef")
     :rtype: str
     """
-    original_text = text
-    text = unicodedata.normalize("NFKD", text)
+    original_text = str(text) if text is not None else ""
+    text = unicodedata.normalize("NFKD", original_text)
     text = transliterate(text)
     text = re.sub(r"[^a-z0-9 ]", "", text)
     words = text.strip().split()
+    slug = "_".join(words[:max_words])
 
-    if not words:
+    if not slug or not any(char.isalnum() for char in slug):
         hash_part = hashlib.sha1(original_text.encode("utf-8")).hexdigest()[:6]
         return f"chat_{hash_part}"
 
-    return "_".join(words[:max_words])
+    return slug
