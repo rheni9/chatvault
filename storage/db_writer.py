@@ -25,10 +25,14 @@ def ensure_tables(cursor: Cursor) -> None:
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS chats (
             slug TEXT PRIMARY KEY,
+            chat_id INTEGER,
+            type TEXT,
             name TEXT,
             link TEXT,
             joined TEXT,
-            chat_id INTEGER
+            is_active BOOLEAN,
+            is_member BOOLEAN,
+            notes TEXT
         )
     """)
 
@@ -60,15 +64,20 @@ def insert_chat(cursor: Cursor, chat: dict) -> None:
     cursor.execute(
         """
         INSERT OR REPLACE INTO chats (
-            slug, name, link, joined, chat_id
-        ) VALUES (?, ?, ?, ?, ?)
+            slug, chat_id, type, name, link,
+            joined, is_active, is_member, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             chat["slug"],
+            chat["chat_id"],
+            chat["type"],
             chat["name"],
             chat.get("link"),
             chat.get("joined"),
-            chat.get("chat_id")
+            chat["is_active"],
+            chat["is_member"],
+            chat["notes"]
         )
     )
 

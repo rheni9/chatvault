@@ -32,11 +32,15 @@ def save_chat_summary(chat: dict) -> None:
 
     existing = [c for c in existing if c["slug"] != chat["slug"]]
     existing.append({
-        "name": chat["name"],
         "slug": chat["slug"],
+        "chat_id": chat["chat_id"],
+        "type": chat["type"],
+        "name": chat["name"],
         "link": chat.get("link"),
         "joined": chat.get("joined"),
-        "chat_id": chat.get("chat_id")
+        "is_active": chat["is_active"],
+        "is_member": chat["is_member"],
+        "notes": chat["notes"]
     })
 
     with open(path, "w", encoding="utf-8") as f:

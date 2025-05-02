@@ -2,11 +2,12 @@
 Message extractor module for Telegram HTML export.
 
 This module provides a function to extract individual messages from
-a single Telegram chat table represented as a BeautifulSoup Tag.
+a single Telegram chat table represented as a BeautifulSoup <table> tag.
 Each message contains metadata such as message ID, timestamp, link,
 and full text with paragraph structure preserved.
 """
 
+import re
 from bs4 import Tag
 from extractors.time_utils import parse_datetime
 
@@ -15,11 +16,22 @@ def extract_messages(table: Tag, chat_slug: str) -> list[dict]:
     """
     Extract messages from a specific Telegram chat table.
 
+    Each message includes:
+      - msg_id: numeric message ID (or None if non-numeric)
+      - timestamp: parsed datetime in ISO format (UTC)
+      - link: direct URL to the message (if available)
+      - text: cleaned multi-paragraph message content
+      - chat_slug: the slug of the parent chat
+      - media: placeholder for media attachment (image/video/audio)
+      - screenshot: optional manual screenshot path (None by default)
+      - tags: list of tags associated with the message (empty by default)
+      - notes: optional textual notes (None by default)
+
     :param table: <table> element containing message rows (<tr>)
     :type table: bs4.element.Tag
     :param chat_slug: Slug used to associate messages with a chat
     :type chat_slug: str
-    :return: List of structured message dictionaries
+    :return: List of dictionaries representing extracted messages
     :rtype: list[dict]
     """
     messages = []
@@ -46,10 +58,11 @@ def extract_messages(table: Tag, chat_slug: str) -> list[dict]:
 
         parsed_dt = parse_datetime(date_cell.text.strip())
 
-        text = "\n\n".join(
-            p.strip()
-            for p in text_cell.decode_contents().strip().split("<br/>")
-            if p.strip()
+        text = text_cell.get_text(separator="\n\n", strip=True)
+        text = re.sub(
+            r"[ \t]*(\n+)[ \t]*",
+            lambda m: m.group(1),
+            text
         )
 
         msg = {
