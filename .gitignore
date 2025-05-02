@@ -177,8 +177,7 @@ cython_debug/
 data/html/*.html
 
 # Ignore generated output
-messages/
-*.json
+data/json/*.json
 
 # Ignore database file
-*.db
+db/*.sqlite

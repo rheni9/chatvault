@@ -2,21 +2,15 @@
 Main script for extracting Telegram chat information from exported HTML files.
 """
 
-import sys
 import re
 from bs4 import BeautifulSoup
-from slugify_utils import slugify
-from html_loader import load_html
-from get_input_html import get_input_html_path
-from time_utils import parse_datetime
+from extractors.slugify_utils import slugify
+from extractors.time_utils import parse_datetime
 
 PIN_ICON = "\U0001F4CD"
 LINK_ICON = "\U0001F517"
 DATE_ICON = "\U0001F4C5"
 ID_ICON = "\U0001F194"
-CHECK_ICON = "\u2705"
-INFO_ICON = "\u2139"
-WARNING_SIGN = "\u26A0\uFE0F"
 
 
 def extract_chats(soup: BeautifulSoup) -> list[dict]:
@@ -69,6 +63,7 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
         chat_id = int(chat_id_input) if chat_id_input.isdigit() else None
 
         chat_data.append({
+            "table": table,
             "name": name,
             "slug": slug,
             "link": link,
@@ -77,24 +72,3 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
         })
 
     return chat_data
-
-
-def main() -> None:
-    """
-    Entry point for running the chat extraction process.
-    Handles graceful interruption and displays final count.
-    """
-    try:
-        path = get_input_html_path()
-        soup = load_html(path)
-        chats = extract_chats(soup)
-
-        print(f"\n{CHECK_ICON}  Total chats processed: {len(chats)}")
-
-    except KeyboardInterrupt:
-        print(f"\n\n{INFO_ICON}  Interrupted by user. Exiting gracefully.")
-        sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
