@@ -48,8 +48,12 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
         if not caption:
             continue
 
+        caption_text = caption.text.strip()
         link_tag = caption.find("a")
-        name = link_tag.text.strip() if link_tag else caption.text.strip()
+
+        name = link_tag.text.strip() if link_tag else caption_text
+        name = re.sub(r"\s*\(joined the group.*?\)", "", name).strip()
+
         link = (
             link_tag["href"]
             if link_tag and link_tag.has_attr("href")
@@ -58,9 +62,10 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
 
         match = re.search(
             r"joined the group\s+(\d{1,2}[./]\d{1,2}[./]\d{2,4})",
-            caption.text
+            caption_text
         )
         joined_date = parse_datetime(match.group(1)) if match else None
+
         slug = slugify(name)
 
         print("\n" + "=" * 30)
@@ -93,7 +98,7 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
             input("Are they a member of this chat? (y/n, default y): ")
             .strip()
             .lower() != "n"
-        ) if is_active else None
+        ) if is_active else False
 
         chat_data.append({
             "slug": slug,
