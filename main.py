@@ -21,18 +21,25 @@ It exits gracefully if interrupted (Ctrl+C).
 
 import os
 import sqlite3
+import psycopg2
+from dotenv import load_dotenv
+
 from extractors.html_loader import load_html
 from extractors.get_input_html import get_input_html_path
 from extractors.chat_extractor import extract_chats
 from extractors.message_extractor import extract_messages
 from storage.json_writer import save_chat_summary, save_messages_to_json
 from storage.db_writer import ensure_tables, insert_chat, insert_message
+from storage.db_pg_writer import (
+    ensure_tables_pg, insert_chat_pg, insert_message_pg
+)
 
 DB_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "db", "chatvault.sqlite")
 )
 
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+load_dotenv()
+PG_URL = os.getenv("DATABASE_URL")
 
 
 def main():
@@ -48,9 +55,15 @@ def main():
     soup = load_html(path)
     chats = extract_chats(soup)
 
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    ensure_tables(c)
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+    sqlite_conn = sqlite3.connect(DB_PATH)
+    sqlite_cur = sqlite_conn.cursor()
+    ensure_tables(sqlite_cur)
+
+    pg_conn = psycopg2.connect(PG_URL)
+    pg_cur = pg_conn.cursor()
+    ensure_tables_pg(pg_cur)
 
     total_messages = 0
 
@@ -60,12 +73,16 @@ def main():
         save_chat_summary(chat)
         save_messages_to_json(chat["slug"], messages)
 
-        insert_chat(c, chat)
+        insert_chat(sqlite_cur, chat)
+        insert_chat_pg(pg_cur, chat)
 
         for msg in messages:
-            insert_message(c, msg)
+            insert_message(sqlite_cur, msg)
+            insert_message_pg(pg_cur, msg)
 
-        conn.commit()
+        sqlite_conn.commit()
+        pg_conn.commit()
+
         total_messages += len(messages)
 
         print(
@@ -73,7 +90,11 @@ def main():
             f"with {len(messages)} messages."
         )
 
-    conn.close()
+    sqlite_cur.close()
+    sqlite_conn.close()
+    pg_cur.close()
+    pg_conn.close()
+
     print("\n\u2705 All chats and messages processed successfully.")
     print(f"\U0001F5C2️  Chats processed: {len(chats)}")
     print(f"\U0001F4AC  Total messages: {total_messages}")
