@@ -28,7 +28,8 @@ def to_utc_iso(dt: datetime) -> str:
 def parse_datetime(
     text: str,
     default_tz=DEFAULT_TZ,
-    day_first: bool = True
+    day_first: bool = True,
+    date_only: bool = False
 ) -> str | None:
     """
     Parse a datetime string and convert to ISO UTC format.
@@ -51,13 +52,21 @@ def parse_datetime(
         pass
 
     try:
+        # Try to parse the date/time string using flexible parsing
         dt = dateutil_parser.parse(text, dayfirst=day_first)
 
+        # If only the date is requested, return "YYYY-MM-DD"
+        if date_only:
+            return dt.date().isoformat()
+
+        # If date-only input, skip timezone conversion to avoid shifting
         if dt.time() == time(0, 0):
             return f"{dt.date().isoformat()}T00:00:00Z"
 
+        # If the datetime has no timezone info, localize it to the default
         if dt.tzinfo is None:
             dt = default_tz.localize(dt)
+
         return to_utc_iso(dt)
 
     except ValueError as e:
