@@ -64,7 +64,9 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
             r"joined the group\s+(\d{1,2}[./]\d{1,2}[./]\d{2,4})",
             caption_text
         )
-        joined_date = parse_datetime(match.group(1)) if match else None
+        joined_date = (
+            parse_datetime(match.group(1), date_only=True) if match else None
+        )
 
         slug = slugify(name)
 
