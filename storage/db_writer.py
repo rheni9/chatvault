@@ -110,3 +110,16 @@ def insert_message(cursor: Cursor, msg: dict) -> None:
             msg.get("notes")
         )
     )
+
+
+def get_existing_slugs(cursor: Cursor) -> set[str]:
+    """
+    Fetch all existing slugs from the chats table.
+
+    :param cursor: SQLite cursor object
+    :type cursor: sqlite3.Cursor
+    :return: Set of existing chat slugs
+    :rtype: set[str]
+    """
+    cursor.execute("SELECT slug FROM chats")
+    return {row[0] for row in cursor.fetchall()}

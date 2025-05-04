@@ -29,7 +29,7 @@ def transliterate(text: str) -> str:
     return ''.join(CYR_TO_LAT.get(char, char) for char in text.lower())
 
 
-def slugify(text: str, max_words: int = 3) -> str:
+def slugify(text: str, max_words: int = 3, used_slugs: set[str] = None) -> str:
     """
     Convert a string into a slug suitable for filenames or identifiers.
 
@@ -40,6 +40,8 @@ def slugify(text: str, max_words: int = 3) -> str:
     :type text: str
     :param max_words: Maximum number of words to include in the slug
     :type max_words: int
+    :param used_slugs: Set of already used slugs to ensure uniqueness
+    :type used_slugs: set[str] or None
     :return: Generated slug (e.g., "chat_name" or "chat_ab12ef")
     :rtype: str
     """
@@ -48,10 +50,20 @@ def slugify(text: str, max_words: int = 3) -> str:
     text = transliterate(text)
     text = re.sub(r"[^a-z0-9 ]", "", text)
     words = text.strip().split()
-    slug = "_".join(words[:max_words])
+    base_slug = "_".join(words[:max_words])
 
-    if not slug or not any(char.isalnum() for char in slug):
+    if not base_slug or not any(char.isalnum() for char in base_slug):
         hash_part = hashlib.sha1(original_text.encode("utf-8")).hexdigest()[:6]
-        return f"chat_{hash_part}"
+        slug = f"chat_{hash_part}"
+    else:
+        slug = base_slug
+        if used_slugs is not None and slug in used_slugs:
+            hash_part = (
+                hashlib.sha1(original_text.encode("utf-8")).hexdigest()[:6]
+            )
+            slug = f"{base_slug}_{hash_part}"
+
+    if used_slugs is not None:
+        used_slugs.add(slug)
 
     return slug

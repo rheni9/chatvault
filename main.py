@@ -29,7 +29,9 @@ from extractors.get_input_html import get_input_html_path
 from extractors.chat_extractor import extract_chats
 from extractors.message_extractor import extract_messages
 from storage.json_writer import save_chat_summary, save_messages_to_json
-from storage.db_writer import ensure_tables, insert_chat, insert_message
+from storage.db_writer import (
+    ensure_tables, insert_chat, insert_message, get_existing_slugs
+)
 from storage.db_pg_writer import (
     ensure_tables_pg, insert_chat_pg, insert_message_pg
 )
@@ -53,13 +55,15 @@ def main():
     """
     path = get_input_html_path()
     soup = load_html(path)
-    chats = extract_chats(soup)
 
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
     sqlite_conn = sqlite3.connect(DB_PATH)
     sqlite_cur = sqlite_conn.cursor()
     ensure_tables(sqlite_cur)
+    used_slugs = get_existing_slugs(sqlite_cur)
+
+    chats = extract_chats(soup, used_slugs=used_slugs)
 
     pg_conn = psycopg2.connect(PG_URL)
     pg_cur = pg_conn.cursor()

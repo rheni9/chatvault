@@ -20,13 +20,16 @@ ID_ICON = "\U0001F194"
 WARNING_SIGN = "\u26A0\uFE0F"
 
 
-def extract_chats(soup: BeautifulSoup) -> list[dict]:
+def extract_chats(
+    soup: BeautifulSoup, used_slugs: set[str] = None
+) -> list[dict]:
     """
     Extract chat information from a parsed Telegram export HTML soup.
 
     For each chat, extracts:
       - name: the chat name as shown in the caption
-      - slug: filename-safe slug generated from the name
+      - slug: unique identifier generated from the name
+              (conflicts are resolved by adding a hash if needed)
       - link: optional hyperlink to the chat
       - joined: join date (parsed from caption text), if present
       - chat_id: numeric identifier provided by the user, or None
@@ -38,9 +41,14 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
 
     :param soup: Parsed BeautifulSoup object of the HTML
     :type soup: bs4.BeautifulSoup
+    :param used_slugs: Set of already used slugs to ensure uniqueness
+    :type used_slugs: set[str] or None
     :return: List of dictionaries with chat information
     :rtype: list[dict]
     """
+    if used_slugs is None:
+        used_slugs = set()
+
     chat_data = []
 
     for table in soup.find_all("table"):
@@ -68,7 +76,7 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
             parse_datetime(match.group(1), date_only=True) if match else None
         )
 
-        slug = slugify(name)
+        slug = slugify(name, used_slugs=used_slugs)
 
         print("\n" + "=" * 30)
         print(f"{PIN_ICON}  Name: {name}")
