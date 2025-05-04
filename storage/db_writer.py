@@ -47,7 +47,7 @@ def ensure_tables(cursor: Cursor) -> None:
             screenshot TEXT,
             tags TEXT,
             notes TEXT,
-            FOREIGN KEY(chat_slug) REFERENCES chats(slug)
+            FOREIGN KEY(chat_slug) REFERENCES chats(slug) ON DELETE CASCADE
         )
     """)
 
