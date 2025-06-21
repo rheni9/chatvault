@@ -13,9 +13,7 @@ def load_html(path: str) -> BeautifulSoup:
     Load and parse an HTML file into a BeautifulSoup object.
 
     :param path: Path to the HTML file
-    :type path: str
     :return: Parsed HTML as BeautifulSoup object
-    :rtype: bs4.BeautifulSoup
     :raises FileNotFoundError: If the file does not exist
     :raises ValueError: If the file extension is not .html or .htm
     """

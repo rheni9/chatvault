@@ -1,25 +1,13 @@
 """
-Main script for extracting and storing Telegram chat export data.
+Telegram HTML parser and writer entrypoint (Arcanum App).
 
-This script performs the following steps:
-
-1. Loads the HTML file exported from Telegram (via parser.get_input_html).
-2. Parses the content into a BeautifulSoup object (via parser.html_loader).
-3. Extracts chat metadata (via parser.chat_extractor).
-4. For each chat:
-   - Extracts its messages (parser.message_extractor).
-   - Saves the chat summary into a JSON file (storage.json_writer).
-   - Saves all messages into a chat-specific JSON file.
-   - Inserts chat and messages into the SQLite database (storage.db_writer).
-
-JSON files are stored in:    ./data/json/
-SQLite database is stored in: ./db/chatvault.sqlite
-
-The script processes chats one by one and commits data after each.
-It exits gracefully if interrupted (Ctrl+C).
+Extracts chat and message data from a Telegram HTML export,
+and stores it in both SQLite and PostgreSQL databases. Also
+saves intermediate JSON summaries for each chat.
 """
 
 import os
+import logging
 import sqlite3
 import psycopg2
 from dotenv import load_dotenv
@@ -29,27 +17,61 @@ from extractors.get_input_html import get_input_html_path
 from extractors.chat_extractor import extract_chats
 from extractors.message_extractor import extract_messages
 from storage.json_writer import save_chat_summary, save_messages_to_json
-from storage.db_writer import ensure_tables, insert_chat, insert_message
-from storage.db_pg_writer import (
-    ensure_tables_pg, insert_chat_pg, insert_message_pg
-)
+from storage.db_writer import (ensure_tables as ensure_sqlite_tables,
+                               insert_chat as insert_sqlite_chat,
+                               insert_message as insert_sqlite_message)
+from storage.db_pg_writer import (ensure_tables as ensure_pg_tables,
+                                  insert_chat as insert_pg_chat, insert_message
+                                  as insert_pg_message)
 
+# === Logging Configuration ===
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
+# === Configuration ===
 DB_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "db", "chatvault.sqlite")
-)
+    os.path.join(os.path.dirname(__file__), "db", "chatvault_test.sqlite"))
 
 load_dotenv()
 PG_URL = os.getenv("DATABASE_URL")
 
 
+def get_chat_id_by_slug_sqlite(cursor: sqlite3.Cursor, slug: str) -> int:
+    """
+    Get the internal chat ID from SQLite by its slug.
+
+    :param cursor: SQLite cursor.
+    :param slug: Unique chat slug.
+    :return: Chat ID in the SQLite DB.
+    :raises ValueError: If the slug is not found.
+    """
+    cursor.execute("SELECT id FROM chats WHERE slug = ?", (slug, ))
+    row = cursor.fetchone()
+    if not row:
+        raise ValueError(f"[SQLite] Chat slug '{slug}' not found.")
+    return row[0]
+
+
+def get_chat_id_by_slug_pg(cursor: psycopg2.extensions.cursor,
+                           slug: str) -> int:
+    """
+    Get the internal chat ID from PostgreSQL by its slug.
+
+    :param cursor: PostgreSQL cursor.
+    :param slug: Unique chat slug.
+    :return: Chat ID in the PostgreSQL DB.
+    :raises ValueError: If the slug is not found.
+    """
+    cursor.execute("SELECT id FROM chats WHERE slug = %s", (slug, ))
+    row = cursor.fetchone()
+    if not row:
+        raise ValueError(f"[Postgres] Chat slug '{slug}' not found.")
+    return row[0]
+
+
 def main():
     """
-    Main execution logic for parsing Telegram export and saving data.
-
-    Loads and parses the HTML file, extracts chat metadata and messages,
-    saves JSON files, and inserts data into the SQLite database.
-
-    Prompts the user for chat_id during processing.
+    Run the full extraction and database insertion workflow.
     """
     path = get_input_html_path()
     soup = load_html(path)
@@ -57,51 +79,72 @@ def main():
 
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-    sqlite_conn = sqlite3.connect(DB_PATH)
-    sqlite_cur = sqlite_conn.cursor()
-    ensure_tables(sqlite_cur)
+    sqlite_conn = pg_conn = None
+    sqlite_cur = pg_cur = None
+    try:
+        sqlite_conn = sqlite3.connect(DB_PATH)
+        sqlite_cur = sqlite_conn.cursor()
+        ensure_sqlite_tables(sqlite_cur)
 
-    pg_conn = psycopg2.connect(PG_URL)
-    pg_cur = pg_conn.cursor()
-    ensure_tables_pg(pg_cur)
+        pg_conn = psycopg2.connect(PG_URL)
+        pg_cur = pg_conn.cursor()
+        ensure_pg_tables(pg_cur)
+    except Exception as e:
+        logger.error("[ERROR] Failed to initialize databases: %s", e)
+        return
 
     total_messages = 0
 
     for chat in chats:
-        messages = extract_messages(chat["table"], chat["slug"])
+        try:
+            messages = extract_messages(chat["table"], chat["slug"])
 
-        save_chat_summary(chat)
-        save_messages_to_json(chat["slug"], messages)
+            save_chat_summary(chat)
+            save_messages_to_json(chat["slug"], messages)
 
-        insert_chat(sqlite_cur, chat)
-        insert_chat_pg(pg_cur, chat)
+            insert_sqlite_chat(sqlite_cur, chat)
+            insert_pg_chat(pg_cur, chat)
 
-        for msg in messages:
-            insert_message(sqlite_cur, msg)
-            insert_message_pg(pg_cur, msg)
+            sqlite_chat_ref_id = get_chat_id_by_slug_sqlite(
+                sqlite_cur, chat["slug"])
+            pg_chat_ref_id = get_chat_id_by_slug_pg(pg_cur, chat["slug"])
 
-        sqlite_conn.commit()
-        pg_conn.commit()
+            for msg in messages:
+                insert_sqlite_message(sqlite_cur, msg, sqlite_chat_ref_id)
+                insert_pg_message(pg_cur, msg, pg_chat_ref_id)
 
-        total_messages += len(messages)
+            sqlite_conn.commit()
+            pg_conn.commit()
 
-        print(
-            f"\n\u2705 Saved chat '{chat['slug']}' "
-            f"with {len(messages)} messages."
-        )
+            total_messages += len(messages)
 
-    sqlite_cur.close()
-    sqlite_conn.close()
-    pg_cur.close()
-    pg_conn.close()
+            logger.info("[CHAT] Saved '%s' with %d messages.",
+                        chat["slug"], len(messages))
+        except Exception as e:
+            logger.error("[ERROR] Failed to process chat '%s': %s",
+                         chat["slug"], e)
+            if sqlite_conn:
+                sqlite_conn.rollback()
+            if pg_conn:
+                pg_conn.rollback()
 
-    print("\n\u2705 All chats and messages processed successfully.")
-    print(f"\U0001F5C2️  Chats processed: {len(chats)}")
-    print(f"\U0001F4AC  Total messages: {total_messages}")
+    # === Proper cleanup after all chats processed ===
+    if sqlite_cur:
+        sqlite_cur.close()
+    if sqlite_conn:
+        sqlite_conn.close()
+    if pg_cur:
+        pg_cur.close()
+    if pg_conn:
+        pg_conn.close()
+
+    logger.info("[DONE] All chats and messages processed.")
+    logger.info("🗂️  Chats processed: %d", len(chats))
+    logger.info("💬  Total messages: %d", total_messages)
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n[INFO] Interrupted by user. Exiting gracefully.")
+        logger.warning("[INTERRUPT] Workflow interrupted by user.")

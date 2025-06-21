@@ -1,27 +1,34 @@
 """
-JSON writer utilities for Telegram chat data.
+JSON writer utilities for Telegram chat data (Arcanum App).
 
-This module provides functions to save chat metadata and message data
-to structured JSON files. Each chat's messages are stored in a separate
-file (msg_{slug}.json), and a cumulative list of chats is maintained
-in chats.json.
+Provides functions to store extracted chat and message information
+as structured JSON files for reference or debugging.
+
+Each chat's metadata is saved in `chats.json`, while messages
+are saved in individual files named `msg_{slug}.json`.
 """
 
 import os
 import json
+import logging
 
+# === Logging ===
+logger = logging.getLogger(__name__)
+
+# === Paths ===
 JSON_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "data", "json")
-)
+    os.path.join(os.path.dirname(__file__), "..", "data", "json"))
 os.makedirs(JSON_PATH, exist_ok=True)
 
 
 def save_chat_summary(chat: dict) -> None:
     """
-    Save or update a chat summary in the chats.json file.
+    Save or update a chat entry in chats.json.
 
-    :param chat: Dictionary containing chat metadata
-    :type chat: dict
+    Replaces existing entry with the same slug (if any),
+    preserving a full summary of the chat’s metadata.
+
+    :param chat: Chat dictionary with required metadata fields.
     """
     path = os.path.join(JSON_PATH, "chats.json")
     if os.path.exists(path):
@@ -46,16 +53,21 @@ def save_chat_summary(chat: dict) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(existing, f, ensure_ascii=False, indent=2)
 
+    logger.info("[JSON|SAVE] Updated chats.json with slug='%s'", chat["slug"])
+
 
 def save_messages_to_json(slug: str, messages: list[dict]) -> None:
     """
-    Save all messages of a chat into a separate JSON file.
+    Save all messages of a given chat to msg_{slug}.json.
 
-    :param slug: Chat slug identifier
-    :type slug: str
-    :param messages: List of message dicts
-    :type messages: list[dict]
+    Overwrites the file if it already exists.
+
+    :param slug: Slug of the chat whose messages are being saved.
+    :param messages: List of message dictionaries.
     """
     path = os.path.join(JSON_PATH, f"msg_{slug}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(messages, f, ensure_ascii=False, indent=2)
+
+    logger.info("[JSON|SAVE] Saved %d messages to msg_%s.json", len(messages),
+                slug)
