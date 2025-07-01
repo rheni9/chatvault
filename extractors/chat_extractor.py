@@ -43,13 +43,17 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
         name = link_tag.text.strip() if link_tag else caption_text
         name = re.sub(r"\s*\(joined the group.*?\)", "", name).strip()
 
-        link = link_tag["href"] if link_tag and link_tag.has_attr("href") else None
+        link = (
+            link_tag["href"] if link_tag and link_tag.has_attr("href")
+            else None
+        )
 
         match = re.search(
             r"joined the group\s+(\d{1,2}[./]\d{1,2}[./]\d{2,4})", caption_text
         )
         joined_date = (
-            parse_datetime(match.group(1), return_date_only=True) if match else None
+            parse_datetime(match.group(1), return_date_only=True)
+            if match else None
         )
 
         slug = slugify(name)
@@ -71,25 +75,36 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
             if chat_id_input.isdigit():
                 chat_id = int(chat_id_input)
                 break
-            print(f"{WARNING_SIGN}  Chat ID must be numeric or empty. Please try again.")
+            print(
+                f"{WARNING_SIGN}  Chat ID must be numeric or empty. "
+                "Please try again."
+            )
 
         # === Prompt for active/member/public ===
-        is_active = input("Is this chat active? (y/n, default y): ").strip().lower() != "n"
+        is_active = input(
+            "Is this chat active? (y/n, default y): "
+        ).strip().lower() != "n"
 
         if is_active:
             is_member = (
-                input("Are they a member of this chat? (y/n, default y): ").strip().lower()
+                input(
+                    "Are they a member of this chat? (y/n, default y): "
+                ).strip().lower()
                 != "n"
             )
             is_public = (
-                input("Is this chat public? (y/n, default y): ").strip().lower() != "n"
+                input(
+                    "Is this chat public? (y/n, default y): "
+                ).strip().lower() != "n"
             )
         else:
             is_member = False
             is_public = False
 
-        logger.info("[CHAT|PARSE] Chat extracted: %s | ID=%s | active=%s | member=%s",
-                    slug, chat_id or "—", is_active, is_member)
+        logger.info(
+            "[CHAT|PARSE] Chat extracted: %s | ID=%s | active=%s | member=%s",
+            slug, chat_id or "—", is_active, is_member
+        )
 
         chat_data.append({
             "slug": slug,

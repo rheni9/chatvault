@@ -6,7 +6,7 @@ of date/time strings into UTC ISO 8601 format.
 """
 
 import logging
-from datetime import datetime, time, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone
 from dateutil import parser as dateutil_parser
 from dateutil.parser import isoparse
 from pytz import timezone

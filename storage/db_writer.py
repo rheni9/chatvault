@@ -68,7 +68,8 @@ def ensure_tables(cursor: Cursor) -> None:
         WHERE msg_id IS NOT NULL
     """)
     logger.debug(
-        "[DB|INDEX] Ensured unique index on (chat_ref_id, msg_id) WHERE msg_id IS NOT NULL."
+        "[DB|INDEX] Ensured unique index on (chat_ref_id, msg_id) "
+        "WHERE msg_id IS NOT NULL."
     )
 
 
@@ -78,7 +79,7 @@ def insert_chat(cursor: Cursor, chat: dict) -> None:
 
     :param cursor: SQLite cursor object.
     :param chat: Chat metadata dictionary.
-    :raises ValueError: If required 'slug' is missing or chat_id duplicates another.
+    :raises ValueError: If 'slug' is missing or chat_id duplicates another.
     """
     slug = chat.get("slug")
     if not slug:
@@ -95,7 +96,8 @@ def insert_chat(cursor: Cursor, chat: dict) -> None:
                 "[DB|INSERT] Duplicate chat_id=%s found for another slug.",
                 chat_id)
             raise ValueError(
-                f"Chat ID {chat_id} already exists in another chat (slug ≠ {slug})"
+                f"Chat ID {chat_id} already exists in another chat "
+                f"(slug ≠ {slug})"
             )
 
     cursor.execute(

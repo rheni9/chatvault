@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "chatvault"
+version = "0.1.0"
+description = ""
+authors = ["Arthur Ratsa <rheni.light@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+psycopg2-binary = "^2.9.10"
+bs4 = "^0.0.2"
+python-dateutil = "^2.9.0.post0"
+pytz = "^2025.2"
+python-dotenv = "^1.1.1"
+lxml = "^6.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

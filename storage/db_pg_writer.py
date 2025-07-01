@@ -5,9 +5,9 @@ Handles table creation and data insertion into a PostgreSQL database.
 """
 
 import logging
+from datetime import datetime, date
 from psycopg2.extras import Json
 from psycopg2.extensions import cursor as PGCursor
-from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,9 @@ def ensure_tables(cursor: PGCursor) -> None:
         CREATE TABLE IF NOT EXISTS messages (
             id SERIAL PRIMARY KEY,
             msg_id BIGINT,
-            chat_ref_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+            chat_ref_id INTEGER NOT NULL
+                REFERENCES chats(id)
+                ON DELETE CASCADE,
             timestamp TIMESTAMPTZ,
             link TEXT,
             text TEXT,
@@ -57,7 +59,8 @@ def ensure_tables(cursor: PGCursor) -> None:
         WHERE msg_id IS NOT NULL
     """)
     logger.debug(
-        "[PG|INDEX] Ensured unique index on (chat_ref_id, msg_id) WHERE msg_id IS NOT NULL."
+        "[PG|INDEX] Ensured unique index on (chat_ref_id, msg_id) "
+        "WHERE msg_id IS NOT NULL."
     )
 
 
@@ -115,7 +118,8 @@ def insert_chat(cursor: PGCursor, chat: dict) -> None:
                 "[PG|INSERT] Duplicate chat_id=%s found for another slug.",
                 chat_id)
             raise ValueError(
-                f"Chat ID {chat_id} already exists in another chat (slug ≠ {slug})"
+                f"Chat ID {chat_id} already exists in another chat "
+                f"(slug ≠ {slug})"
             )
 
     cursor.execute(
