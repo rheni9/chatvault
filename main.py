@@ -10,6 +10,7 @@ import os
 import logging
 import sqlite3
 import psycopg2
+from psycopg2 import DatabaseError as PGDatabaseError
 from dotenv import load_dotenv
 
 from extractors.html_loader import load_html
@@ -77,19 +78,19 @@ def main():
     soup = load_html(path)
     chats = extract_chats(soup)
 
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(SQLITE_PATH), exist_ok=True)
 
     sqlite_conn = pg_conn = None
     sqlite_cur = pg_cur = None
     try:
-        sqlite_conn = sqlite3.connect(DB_PATH)
+        sqlite_conn = sqlite3.connect(SQLITE_PATH)
         sqlite_cur = sqlite_conn.cursor()
         ensure_sqlite_tables(sqlite_cur)
 
         pg_conn = psycopg2.connect(PG_URL)
         pg_cur = pg_conn.cursor()
         ensure_pg_tables(pg_cur)
-    except Exception as e:
+    except (sqlite3.DatabaseError, PGDatabaseError) as e:
         logger.error("[ERROR] Failed to initialize databases: %s", e)
         return
 
@@ -120,7 +121,7 @@ def main():
 
             logger.info("[CHAT] Saved '%s' with %d messages.",
                         chat["slug"], len(messages))
-        except Exception as e:
+        except (sqlite3.DatabaseError, PGDatabaseError, KeyError) as e:
             logger.error("[ERROR] Failed to process chat '%s': %s",
                          chat["slug"], e)
             if sqlite_conn:
