@@ -29,12 +29,23 @@ from storage.db_pg_writer import (ensure_tables as ensure_pg_tables,
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-# === Configuration ===
-DB_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "db", "chatvault_test.sqlite"))
-
+# === Load .env ===
 load_dotenv()
-PG_URL = os.getenv("DATABASE_URL")
+
+# === SQLite: use SQLITE_PATH if set, else fallback ===
+SQLITE_PATH = os.getenv(
+    "SQLITE_PATH",
+    os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "db",
+            "chatvault.sqlite"
+        )
+    )
+)
+
+# === PostgreSQL ===
+PG_URL = os.getenv("PG_DATABASE_URL")
 
 
 def get_chat_id_by_slug_sqlite(cursor: sqlite3.Cursor, slug: str) -> int:
