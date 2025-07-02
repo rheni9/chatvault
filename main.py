@@ -29,7 +29,7 @@ from storage.db_pg_writer import (ensure_tables as ensure_pg_tables,
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
-# === Load .env ===
+# === Load environment ===
 load_dotenv()
 
 # === SQLite: use SQLITE_PATH if set, else fallback ===
@@ -45,7 +45,11 @@ SQLITE_PATH = os.getenv(
 )
 
 # === PostgreSQL ===
-PG_URL = os.getenv("PG_DATABASE_URL")
+PG_HOST = os.getenv("PG_HOST", "127.0.0.1")
+PG_PORT = os.getenv("PG_PORT", "5432")
+PG_DATABASE = os.getenv("PG_DATABASE")
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 
 
 def get_chat_id_by_slug_sqlite(cursor: sqlite3.Cursor, slug: str) -> int:
@@ -98,7 +102,13 @@ def main():
         sqlite_cur = sqlite_conn.cursor()
         ensure_sqlite_tables(sqlite_cur)
 
-        pg_conn = psycopg2.connect(PG_URL)
+        pg_conn = psycopg2.connect(
+            host=PG_HOST,
+            port=PG_PORT,
+            dbname=PG_DATABASE,
+            user=PG_USER,
+            password=PG_PASSWORD
+        )
         pg_cur = pg_conn.cursor()
         ensure_pg_tables(pg_cur)
     except (sqlite3.DatabaseError, PGDatabaseError) as e:

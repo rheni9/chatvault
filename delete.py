@@ -15,7 +15,8 @@ from dotenv import load_dotenv
 
 # === Load environment ===
 load_dotenv()
-PG_URL = os.getenv("DATABASE_URL")
+
+# === SQLite: use SQLITE_PATH if set, else fallback ===
 SQLITE_PATH = os.getenv(
     "SQLITE_PATH",
     os.path.abspath(
@@ -26,6 +27,13 @@ SQLITE_PATH = os.getenv(
         )
     )
 )
+
+# === PostgreSQL ===
+PG_HOST = os.getenv("PG_HOST", "127.0.0.1")
+PG_PORT = os.getenv("PG_PORT", "5432")
+PG_DATABASE = os.getenv("PG_DATABASE")
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 
 # === Logger configuration ===
 logger = logging.getLogger(__name__)
@@ -45,7 +53,13 @@ def drop_pg_tables() -> None:
     conn = None
     cur = None
     try:
-        conn = psycopg2.connect(PG_URL)
+        conn = psycopg2.connect(
+            host=PG_HOST,
+            port=PG_PORT,
+            dbname=PG_DATABASE,
+            user=PG_USER,
+            password=PG_PASSWORD
+        )
         cur = conn.cursor()
 
         logger.info(
