@@ -112,6 +112,7 @@ def extract_chats(soup: BeautifulSoup) -> list[dict]:
             "type": None,
             "name": name,
             "link": link,
+            "image": None,
             "joined": joined_date,
             "is_active": is_active,
             "is_member": is_member,

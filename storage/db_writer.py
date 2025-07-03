@@ -36,6 +36,7 @@ def ensure_tables(cursor: Cursor) -> None:
             type TEXT,
             name TEXT,
             link TEXT,
+            image TEXT,
             joined TEXT,
             is_active BOOLEAN,
             is_member BOOLEAN,
@@ -103,14 +104,15 @@ def insert_chat(cursor: Cursor, chat: dict) -> None:
     cursor.execute(
         """
         INSERT INTO chats (
-            slug, chat_id, type, name, link,
+            slug, chat_id, type, name, link, image,
             joined, is_active, is_member, is_public, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(slug) DO UPDATE SET
             chat_id = excluded.chat_id,
             type = excluded.type,
             name = excluded.name,
             link = excluded.link,
+            image = excluded.image,
             joined = excluded.joined,
             is_active = excluded.is_active,
             is_member = excluded.is_member,
@@ -118,8 +120,9 @@ def insert_chat(cursor: Cursor, chat: dict) -> None:
             notes = excluded.notes
     """,
         (chat["slug"], chat.get("chat_id"), chat.get("type"), chat.get("name"),
-         chat.get("link"), chat.get("joined"), chat.get("is_active"),
-         chat.get("is_member"), chat.get("is_public"), chat.get("notes")))
+         chat.get("link"), chat.get("image"), chat.get("joined"),
+         chat.get("is_active"), chat.get("is_member"), chat.get("is_public"),
+         chat.get("notes")))
     logger.debug("[DB|INSERT] Chat inserted or updated: '%s'.", slug)
 
 

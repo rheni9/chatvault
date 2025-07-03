@@ -26,6 +26,7 @@ def ensure_tables(cursor: PGCursor) -> None:
             type TEXT,
             name TEXT,
             link TEXT,
+            image TEXT,
             joined DATE,
             is_active BOOLEAN,
             is_member BOOLEAN,
@@ -125,23 +126,25 @@ def insert_chat(cursor: PGCursor, chat: dict) -> None:
     cursor.execute(
         """
         INSERT INTO chats (
-            slug, chat_id, type, name, link,
+            slug, chat_id, type, name, link, image,
             joined, is_active, is_member, is_public, notes
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (slug) DO UPDATE SET
             chat_id = EXCLUDED.chat_id,
             type = EXCLUDED.type,
             name = EXCLUDED.name,
             link = EXCLUDED.link,
+            image = EXCLUDED.image,
             joined = EXCLUDED.joined,
             is_active = EXCLUDED.is_active,
             is_member = EXCLUDED.is_member,
             is_public = EXCLUDED.is_public,
             notes = EXCLUDED.notes
-    """, (chat["slug"], chat["chat_id"], chat["type"], chat["name"],
-          chat.get("link"), parse_iso_date(
-              chat.get("joined")), chat["is_active"], chat["is_member"],
-          chat["is_public"], chat.get("notes")))
+    """, (chat["slug"], chat.get("chat_id"), chat.get("type"),
+          chat["name"], chat.get("link"), chat.get("image"),
+          parse_iso_date(chat.get("joined")),
+          chat["is_active"], chat["is_member"], chat["is_public"],
+          chat.get("notes")))
     logger.debug("[PG|INSERT] Chat inserted or updated: '%s'.", chat["slug"])
 
 
